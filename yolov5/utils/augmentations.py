@@ -25,6 +25,7 @@ class Albumentations:
             check_version(A.__version__, '1.0.3')  # version requirement
 
             self.transform = A.Compose([
+                ChannelShuffle(p=1),
                 A.Blur(p=0.01),
                 A.MedianBlur(p=0.01),
                 A.ToGray(p=0.01),

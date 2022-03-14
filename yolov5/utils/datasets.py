@@ -608,6 +608,11 @@ class LoadImagesAndLabels(Dataset):
                 if nl:
                     labels[:, 1] = 1 - labels[:, 1]
 
+            # ChannelShuffle
+            # shuffle_channels = Al.Compose([ChannelShuffle(p=1)])
+            # new = self.transform(image=img, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
+            # im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+
             # Cutouts
             # labels = cutout(img, labels, p=0.5)
 
