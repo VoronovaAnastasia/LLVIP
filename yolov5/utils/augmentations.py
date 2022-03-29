@@ -25,7 +25,7 @@ class Albumentations:
             check_version(A.__version__, '1.0.3')  # version requirement
 
             self.transform = A.Compose([
-                ChannelShuffle(p=1),
+                A.ChannelShuffle(p=1),
                 A.Blur(p=0.01),
                 A.MedianBlur(p=0.01),
                 A.ToGray(p=0.01),
@@ -46,32 +46,6 @@ class Albumentations:
             new = self.transform(image=im, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
             im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
         return im, labels
-
-class ChannelShuffle(ImageOnlyTransform):
-    """Randomly rearrange channels of the input RGB image.
-    Args:
-        p (float): probability of applying the transform. Default: 0.5.
-    Targets:
-        image
-    Image types:
-        uint8, float32
-    """
-
-    @property
-    def targets_as_params(self):
-        return ["image"]
-
-    def apply(self, img, channels_shuffled=(0, 1, 2), **params):
-        return F.channel_shuffle(img, channels_shuffled)
-
-    def get_params_dependent_on_targets(self, params):
-        img = params["image"]
-        ch_arr = list(range(img.shape[2]))
-        random.shuffle(ch_arr)
-        return {"channels_shuffled": ch_arr}
-
-    def get_transform_init_args_names(self):
-        return ()
 
 
 def augment_hsv(im, hgain=0.5, sgain=0.5, vgain=0.5):
