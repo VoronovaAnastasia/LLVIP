@@ -253,7 +253,7 @@ def plot_targets_txt():  # from utils.plots import *; plot_targets_txt()
         ax[i].hist(x[i], bins=100, label='%.3g +/- %.3g' % (x[i].mean(), x[i].std()))
         ax[i].legend()
         ax[i].set_title(s[i])
-    plt.savefig('targets.jpg', dpi=200)
+    plt.savefig('targets.png', dpi=200)
 
 
 def plot_val_study(file='', dir='', x=None):  # from utils.plots import *; plot_val_study()
@@ -302,7 +302,7 @@ def plot_labels(labels, names=(), save_dir=Path('')):
 
     # seaborn correlogram
     sn.pairplot(x, corner=True, diag_kind='auto', kind='hist', diag_kws=dict(bins=50), plot_kws=dict(pmax=0.9))
-    plt.savefig(save_dir / 'labels_correlogram.jpg', dpi=200)
+    plt.savefig(save_dir / 'labels_correlogram.png', dpi=200)
     plt.close()
 
     # matplotlib labels
@@ -332,7 +332,7 @@ def plot_labels(labels, names=(), save_dir=Path('')):
         for s in ['top', 'right', 'left', 'bottom']:
             ax[a].spines[s].set_visible(False)
 
-    plt.savefig(save_dir / 'labels.jpg', dpi=200)
+    plt.savefig(save_dir / 'labels.png', dpi=200)
     matplotlib.use('Agg')
     plt.close()
 
