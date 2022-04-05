@@ -387,8 +387,8 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 torch.save(ckpt, best)
             if (epoch > 0) and (save_period > 0) and (epoch % save_period == 0):
                 torch.save(ckpt, w / f'epoch{epoch}.pt')
-                pathd="/content/drive/MyDrive/DIPLOMA"  #save on drive every epoch
-                torch.save(ckpt, pathd / f'epoch{epoch}.pt')
+                #pathd="/content/drive/MyDrive/DIPLOMA"  #save on drive every epoch
+                torch.save(ckpt,'/content/drive/MyDrive/DIPLOMA/model_rgb_s.pt')
             del ckpt
             callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
 
