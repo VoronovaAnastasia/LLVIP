@@ -50,6 +50,10 @@ from utils.metrics import fitness
 from utils.loggers import Loggers
 from utils.callbacks import Callbacks
 
+#from google.colab import drive
+#from google.colab.patches import cv2_imshow
+
+
 LOGGER = logging.getLogger(__name__)
 LOCAL_RANK = int(os.getenv('LOCAL_RANK', -1))  # https://pytorch.org/docs/stable/elastic/run.html
 RANK = int(os.getenv('RANK', -1))
@@ -369,6 +373,30 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             callbacks.run('on_fit_epoch_end', log_vals, epoch, best_fitness, fi)
 
             # Save model
+            save_period=1
+
+
+
+            ckpt = {'epoch': epoch,
+                    'best_fitness': best_fitness,
+                    'model': deepcopy(de_parallel(model)).half(),
+                    'ema': deepcopy(ema.ema).half(),
+                    'updates': ema.updates,
+                    'optimizer': optimizer.state_dict(),
+                    'wandb_id': loggers.wandb.wandb_run.id if loggers.wandb else None}
+
+            # Save last, best and delete
+            torch.save(ckpt, last)
+            if best_fitness == fi:
+                torch.save(ckpt, best)
+            if (epoch > 0) and (save_period > 0) and (epoch % save_period == 0):
+                torch.save(ckpt, w / f'epoch{epoch}.pt')
+                pathd="/content/drive/MyDrive/DIPLOMA"  #save on drive every epoch
+                torch.save(ckpt, pathd / f'epoch{epoch}.pt')
+            del ckpt
+            callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
+
+
             if (not nosave) or (final_epoch and not evolve):  # if save
                 ckpt = {'epoch': epoch,
                         'best_fitness': best_fitness,
@@ -619,4 +647,5 @@ def run(**kwargs):
 
 if __name__ == "__main__":
     opt = parse_opt()
+    #drive.mount('/content/drive')
     main(opt)
