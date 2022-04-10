@@ -227,7 +227,7 @@ def run(data,
         if plots and batch_i < 3:
             f = save_dir / f'val_batch{batch_i}_labels.jpg'  # labels
             Thread(target=plot_images, args=(img, targets, paths, f, names), daemon=True).start()
-            f = save_dir / f'val_batch{batch_i}_pred.jpg'  # predictions
+            f = save_dir / f'val_batch{batch_i}_pred.png'  # predictions
             Thread(target=plot_images, args=(img, output_to_target(out), paths, f, names), daemon=True).start()
 
     # Compute statistics
