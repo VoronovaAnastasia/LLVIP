@@ -82,7 +82,7 @@ class Detect(nn.Module):
 
 
 class Model(nn.Module):
-    def __init__(self, cfg='yolov5s.yaml', ch=3, nc=None, anchors=None):  # model, input channels, number of classes
+    def __init__(self, cfg='yolov5s.yaml', ch=4, nc=None, anchors=None):  # model, input channels, number of classes
         super().__init__()
         if isinstance(cfg, dict):
             self.yaml = cfg  # model dict
@@ -94,6 +94,7 @@ class Model(nn.Module):
 
         # Define model
         ch = self.yaml['ch'] = self.yaml.get('ch', ch)  # input channels
+        ch=4
         print("/////////////////////////////////------------------------/////////////////////////////////")
         print("/////////////////////////////////------------------------/////////////////////////////////")
         print("/////////////////////////////////------------------------/////////////////////////////////")
