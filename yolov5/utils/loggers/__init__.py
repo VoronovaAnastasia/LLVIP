@@ -85,7 +85,7 @@ class Loggers():
                         warnings.simplefilter('ignore')  # suppress jit trace warning
                         self.tb.add_graph(torch.jit.trace(de_parallel(model), imgs[0:1], strict=False), [])
             if ni < 3:
-                f = self.save_dir / f'train_batch{ni}.jpg'  # filename
+                f = self.save_dir / f'train_batch{ni}.png'  # filename
                 Thread(target=plot_images, args=(imgs, targets, paths, f), daemon=True).start()
             if self.wandb and ni == 10:
                 files = sorted(self.save_dir.glob('train*.jpg'))
