@@ -8,4 +8,3 @@ module load Python/Anaconda_v10.2019
 source deactivate
 source activate dip
 which python
-python -V
