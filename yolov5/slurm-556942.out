@@ -1,0 +1,20 @@
+Collecting package metadata (current_repodata.json): ...working... failed
+
+CondaHTTPError: HTTP 000 CONNECTION FAILED for url <https://repo.anaconda.com/pkgs/main/linux-64/current_repodata.json>
+Elapsed: -
+
+An HTTP error occurred when trying to retrieve this URL.
+HTTP errors are often intermittent, and a simple retry will get you on your way.
+
+If your current network has https://www.anaconda.com blocked, please file
+a support request with your network engineering team.
+
+'https://repo.anaconda.com/pkgs/main/linux-64'
+
+
+DeprecationWarning: 'source deactivate' is deprecated. Use 'conda deactivate'.
+Traceback (most recent call last):
+  File "/home/avvoronova/diploma/LLVIP/yolov5/train.py", line 20, in <module>
+    import torch
+ModuleNotFoundError: No module named 'torch'
+srun: error: cn-013: task 0: Exited with exit code 1
