@@ -532,7 +532,8 @@ def main(opt, callbacks=Callbacks()):
         opt.save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
 
     # DDP mode
-    device = select_device(opt.device, batch_size=opt.batch_size)
+    #device = select_device(opt.device, batch_size=opt.batch_size)
+    device = torch.device('cuda')
     if LOCAL_RANK != -1:
         assert torch.cuda.device_count() > LOCAL_RANK, 'insufficient CUDA devices for DDP command'
         assert opt.batch_size % WORLD_SIZE == 0, '--batch-size must be multiple of CUDA device count'
