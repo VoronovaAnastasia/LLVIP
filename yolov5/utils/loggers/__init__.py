@@ -6,6 +6,7 @@ Logging utils
 import os
 import warnings
 from threading import Thread
+import numpy as np
 
 import pkg_resources as pkg
 import torch
@@ -141,7 +142,11 @@ class Loggers():
         if self.tb:
             import cv2
             for f in files:
-                self.tb.add_image(f.stem, cv2.imread(str(f))[..., ::-1], epoch, dataformats='HWC')
+                img=cv2.imread(str(f))[..., ::-1]
+                if img.shape[2]==3:
+                    img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                    img[:, :, 3]=np.zeros([img.shape[0], img.shape[1]])
+                self.tb.add_image(f.stem, img, epoch, dataformats='HWC')
 
         if self.wandb:
             self.wandb.log({"Results": [wandb.Image(str(f), caption=f.name) for f in files]})

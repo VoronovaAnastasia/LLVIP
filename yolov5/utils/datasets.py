@@ -26,7 +26,7 @@ from PIL import Image, ImageOps, ExifTags
 from torch.utils.data import Dataset
 from tqdm import tqdm
 
-from utils.augmentations import Albumentations, augment_hsv, copy_paste, letterbox, mixup, random_perspective
+from utils.augmentations import Albumentations, Albumentations2, augment_hsv, copy_paste, letterbox, mixup, random_perspective
 from utils.general import check_dataset, check_requirements, check_yaml, clean_str, segments2boxes, \
     xywh2xyxy, xywhn2xyxy, xyxy2xywhn, xyn2xy
 from utils.torch_utils import torch_distributed_zero_first
@@ -215,7 +215,13 @@ class LoadImages:
         else:
             # Read image
             self.count += 1
-            img0 = cv2.imread(path)  # BGR
+            #img0 = cv2.imread(path)  # BGR
+            image_i = cv2.imread(path)
+            image_v = cv2.imread(path.replace('inf', 'vis'))
+            img0 = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            if img0.shape[2]==3:
+                img0=cv2.cvtColor(img0, cv2.COLOR_RGB2RGBA)
+                img0[:, :, 3]=np.zeros([img0.shape[0], img0.shape[1]])
             assert img0 is not None, 'Image Not Found ' + path
             print(f'image {self.count}/{self.nf} {path}: ', end='')
 
@@ -389,6 +395,7 @@ class LoadImagesAndLabels(Dataset):
         self.stride = stride
         self.path = path
         self.albumentations = Albumentations() if augment else None
+        self.albumentations2 = Albumentations2() if augment else None
 
         try:
             f = []  # image files
@@ -590,17 +597,36 @@ class LoadImagesAndLabels(Dataset):
 
         if self.augment:
             # Albumentations
+            #logging.info(f'{img.shape} before augment:')
+            imi=np.copy(img[:, :, 3])
             img, labels = self.albumentations(img, labels)
+
+            if img.shape[2]==3:
+                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                img[:, :, 3]=imi
+            
+            if img.shape[0]==3 :
+                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                img[3, :,:]=imi
+
+
+            #img[:, :, :3]=im3
+            # print("before -----")
+            # print(img.shape)
             nl = len(labels)  # update after albumentations
 
             # HSV color-space
             augment_hsv(img, hgain=hyp['hsv_h'], sgain=hyp['hsv_s'], vgain=hyp['hsv_v'])
+            #logging.info(f'{img.shape}after hsv:')
 
             # Flip up-down
             if random.random() < hyp['flipud']:
                 img = np.flipud(img)
                 if nl:
                     labels[:, 2] = 1 - labels[:, 2]
+            
+            # print("after flipud -----")
+            # print(img.shape)
 
             # Flip left-right
             if random.random() < hyp['fliplr']:
@@ -609,9 +635,7 @@ class LoadImagesAndLabels(Dataset):
                     labels[:, 1] = 1 - labels[:, 1]
 
             # ChannelShuffle
-            # shuffle_channels = Al.Compose([ChannelShuffle(p=1)])
-            # new = self.transform(image=img, bboxes=labels[:, 1:], class_labels=labels[:, 0])  # transformed
-            # im, labels = new['image'], np.array([[c, *b] for c, b in zip(new['class_labels'], new['bboxes'])])
+            img = self.albumentations2(img, labels)
 
             # Cutouts
             # labels = cutout(img, labels, p=0.5)
@@ -624,11 +648,16 @@ class LoadImagesAndLabels(Dataset):
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
+        # print("after transpose -----")
+        # print(img.shape)
+        #logging.info(f'{img.shape}after augmentation:')
+
         return torch.from_numpy(img), labels_out, self.img_files[index], shapes
 
     @staticmethod
     def collate_fn(batch):
         img, label, path, shapes = zip(*batch)  # transposed
+        #print(img.shape, "  ----------- label", label.shape)
         for i, l in enumerate(label):
             l[:, 0] = i  # add target image index for build_targets()
         return torch.stack(img, 0), torch.cat(label, 0), path, shapes
@@ -674,6 +703,10 @@ def load_image(self, i):
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis'))
             im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+
+            if im.shape[2]==3:
+                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
@@ -857,7 +890,13 @@ def extract_boxes(path='../datasets/coco128'):  # from utils.datasets import *; 
     for im_file in tqdm(files, total=n):
         if im_file.suffix[1:] in IMG_FORMATS:
             # image
-            im = cv2.imread(str(im_file))[..., ::-1]  # BGR to RGB
+            #im = cv2.imread(str(im_file))[..., ::-1]  # BGR to RGB
+            image_i = cv2.imread(str(im_file))[..., ::-1]
+            image_v = cv2.imread(str(im_file.replace('inf', 'vis')))[..., ::-1]
+            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            if im.shape[2]==3:
+                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
             h, w = im.shape[:2]
 
             # labels
@@ -992,7 +1031,14 @@ def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False, profil
             im.save(f_new, quality=75)  # save
         except Exception as e:  # use OpenCV
             print(f'WARNING: HUB ops PIL failure {f}: {e}')
-            im = cv2.imread(f)
+            #im = cv2.imread(f)
+            image_i = cv2.imread(f)
+            image_v = cv2.imread(f.replace('inf', 'vis'))
+            img = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            if img.shape[2]==3:
+                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                img[:, :, 3]=np.zeros([img.shape[0], img.shape[1]])
+
             im_height, im_width = im.shape[:2]
             r = max_dim / max(im_height, im_width)  # ratio
             if r < 1.0:  # image too large
