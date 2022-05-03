@@ -1,9 +1,9 @@
-weights: ''
-cfg: models/yolov5s.yaml
+weights: yolov5s.pt
+cfg: ''
 data: data/LLVIP.yaml
 hyp: data/hyps/hyp.scratch.yaml
-epochs: 4
-batch_size: 4
+epochs: 5
+batch_size: 8
 imgsz: 1280
 rect: false
 resume: false
