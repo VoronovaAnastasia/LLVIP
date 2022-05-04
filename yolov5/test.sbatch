@@ -9,4 +9,4 @@
 module load CUDA/11.4   
 
 source activate diploma
-srun python3 train.py --img 1280 --batch 16 --epochs 100 --data data/LLVIP.yaml --weights modelrgbi.pt --name LLVIP_export100 --device 0
+srun python3 train.py --img 1280 --batch 16 --epochs 100 --data data/LLVIP.yaml --weights modelrgbi.pt --name LLVIP_export200 --device 0
