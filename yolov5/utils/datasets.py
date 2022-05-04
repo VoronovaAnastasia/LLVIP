@@ -216,12 +216,12 @@ class LoadImages:
             # Read image
             self.count += 1
             #img0 = cv2.imread(path)  # BGR
-            image_i = cv2.imread(path)
-            image_v = cv2.imread(path.replace('inf', 'vis'))
-            img0 = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if img0.shape[2]==3:
-                img0=cv2.cvtColor(img0, cv2.COLOR_RGB2RGBA)
-                img0[:, :, 3]=np.zeros([img0.shape[0], img0.shape[1]])
+            img0 = cv2.imread(path)
+            # image_v = cv2.imread(path.replace('inf', 'vis'))
+            # img0 = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            # if img0.shape[2]==3:
+            img0=cv2.cvtColor(img0, cv2.COLOR_RGB2RGBA)
+            img0[:, :, 3]=np.zeros([img0.shape[0], img0.shape[1]])
             assert img0 is not None, 'Image Not Found ' + path
             print(f'image {self.count}/{self.nf} {path}: ', end='')
 
@@ -700,13 +700,17 @@ def load_image(self, i):
         else:  # read image
             path = self.img_files[i]
             #im = cv2.imread(path)  # BGR
-            image_i = cv2.imread(path)
-            image_v = cv2.imread(path.replace('inf', 'vis'))
-            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            # image_i = cv2.imread(path)
+            # image_v = cv2.imread(path.replace('inf', 'vis'))
+            # im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
 
-            if im.shape[2]==3:
-                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
-                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+            # if im.shape[2]==3:
+            #     im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+            #     im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+
+            im = cv2.imread(path)
+            im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+            im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
@@ -891,12 +895,17 @@ def extract_boxes(path='../datasets/coco128'):  # from utils.datasets import *; 
         if im_file.suffix[1:] in IMG_FORMATS:
             # image
             #im = cv2.imread(str(im_file))[..., ::-1]  # BGR to RGB
-            image_i = cv2.imread(str(im_file))[..., ::-1]
-            image_v = cv2.imread(str(im_file.replace('inf', 'vis')))[..., ::-1]
-            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if im.shape[2]==3:
-                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
-                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+            # image_i = cv2.imread(str(im_file))[..., ::-1]
+            # image_v = cv2.imread(str(im_file.replace('inf', 'vis')))[..., ::-1]
+            # im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            # if im.shape[2]==3:
+            #     im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+            #     im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+
+            im = cv2.imread(str(im_file))[..., ::-1]
+            im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+            im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+
             h, w = im.shape[:2]
 
             # labels
@@ -1032,12 +1041,16 @@ def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False, profil
         except Exception as e:  # use OpenCV
             print(f'WARNING: HUB ops PIL failure {f}: {e}')
             #im = cv2.imread(f)
-            image_i = cv2.imread(f)
-            image_v = cv2.imread(f.replace('inf', 'vis'))
-            img = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if img.shape[2]==3:
-                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
-                img[:, :, 3]=np.zeros([img.shape[0], img.shape[1]])
+            # image_i = cv2.imread(f)
+            # image_v = cv2.imread(f.replace('inf', 'vis'))
+            # img = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            # if img.shape[2]==3:
+            #     img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+            #     img[:, :, 3]=np.zeros([img.shape[0], img.shape[1]])
+
+            im = cv2.imread(f)
+            im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
+            im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
 
             im_height, im_width = im.shape[:2]
             r = max_dim / max(im_height, im_width)  # ratio
