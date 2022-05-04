@@ -271,6 +271,10 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 f"Logging results to {colorstr('bold', save_dir)}\n"
                 f'Starting training for {epochs} epochs...')
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
+
+        if epoch==2:
+            for g in optimizer.param_groups:
+                g['lr'] = g['lr']/10
         model.train()
 
         # Update image weights (optional, single-GPU only)
@@ -392,7 +396,7 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
             if (epoch > 0) and (save_period > 0) and (epoch % save_period == 0):
                 torch.save(ckpt, w / f'epoch{epoch}.pt')
                 #pathd="/content/drive/MyDrive/DIPLOMA"  #save on drive every epoch
-                torch.save(ckpt, '/home/avvoronova/diploma/LLVIP/yolov5/runs/train/modelrgbi.pt')
+                torch.save(ckpt, '/home/avvoronova/diploma/LLVIP/yolov5/runs/train/modelrgbi200.pt')
             del ckpt
             callbacks.run('on_model_save', last, epoch, final_epoch, best_fitness, fi)
 
