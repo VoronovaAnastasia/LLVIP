@@ -1,0 +1,6 @@
+/var/spool/slurm/d/job633166/slurm_script: line 11: activate: No such file or directory
+[34m[1mhyperparameters: [0mlr0=0.01, lrf=0.1, momentum=0.937, weight_decay=0.0005, warmup_epochs=3.0, warmup_momentum=0.8, warmup_bias_lr=0.1, box=0.05, cls=0.5, cls_pw=1.0, obj=1.0, obj_pw=1.0, iou_t=0.2, anchor_t=4.0, fl_gamma=0.0, hsv_h=0.015, hsv_s=0.7, hsv_v=0.4, degrees=0.0, translate=0.1, scale=0.5, shear=0.0, perspective=0.0, flipud=0.0, fliplr=0.5, mosaic=1.0, mixup=0.0, copy_paste=0.0
+[34m[1mTensorBoard: [0mStart with 'tensorboard --logdir runs/train', view at http://localhost:6006/
+srun: Job step aborted: Waiting up to 122 seconds for job step to finish.
+slurmstepd: error: *** JOB 633166 ON cn-042 CANCELLED AT 2022-05-06T15:52:09 ***
+slurmstepd: error: *** STEP 633166.0 ON cn-042 CANCELLED AT 2022-05-06T15:52:09 ***
