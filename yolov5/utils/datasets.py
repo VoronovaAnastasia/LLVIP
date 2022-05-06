@@ -635,7 +635,7 @@ class LoadImagesAndLabels(Dataset):
                     labels[:, 1] = 1 - labels[:, 1]
 
             # ChannelShuffle
-            img = self.albumentations2(img, labels)
+            #img = self.albumentations2(img, labels)
 
             # Cutouts
             # labels = cutout(img, labels, p=0.5)
