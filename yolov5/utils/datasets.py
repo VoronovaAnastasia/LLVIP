@@ -635,7 +635,7 @@ class LoadImagesAndLabels(Dataset):
                     labels[:, 1] = 1 - labels[:, 1]
 
             # ChannelShuffle
-            img = self.albumentations2(img, labels)
+            #img = self.albumentations2(img, labels)
 
             # Cutouts
             # labels = cutout(img, labels, p=0.5)
@@ -702,7 +702,11 @@ def load_image(self, i):
             #im = cv2.imread(path)  # BGR
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis'))
-            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            if random.random() < 0.5:
+                im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            else:
+                im=cv2.cvtColor(image_v, cv2.COLOR_RGB2RGBA)
+                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
 
             if im.shape[2]==3:
                 im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
