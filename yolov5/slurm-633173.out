@@ -1,5 +1,0 @@
-Traceback (most recent call last):
-  File "/home/avvoronova/diploma/LLVIP/yolov5/train.py", line 20, in <module>
-    import torch
-ModuleNotFoundError: No module named 'torch'
-srun: error: cn-042: task 0: Exited with exit code 1
