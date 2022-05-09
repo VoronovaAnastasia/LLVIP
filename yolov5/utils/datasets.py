@@ -702,11 +702,18 @@ def load_image(self, i):
             #im = cv2.imread(path)  # BGR
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis'))
-            if random.random() < 0.5:
+
+            if "val_inf" in path or "val_vis" in path :
+                #logging.info("------------------------------in validation---------------------------") 
                 im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
             else:
-                im=cv2.cvtColor(image_v, cv2.COLOR_RGB2RGBA)
-                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+                #logging.info("------------------------in train-------------------------------------") 
+
+                if random.random() < 0.5:
+                    im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+                else:
+                    im=cv2.cvtColor(image_v, cv2.COLOR_RGB2RGBA)
+                    im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
 
             if im.shape[2]==3:
                 im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
