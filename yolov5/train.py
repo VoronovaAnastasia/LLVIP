@@ -272,9 +272,9 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
                 f'Starting training for {epochs} epochs...')
     for epoch in range(start_epoch, epochs):  # epoch ------------------------------------------------------------------
 
-        if epoch==2:
-            for g in optimizer.param_groups:
-                g['lr'] = g['lr']/10
+        # if epoch==2:
+        #     for g in optimizer.param_groups:
+        #         g['lr'] = g['lr']/10
         model.train()
 
         # Update image weights (optional, single-GPU only)
@@ -557,7 +557,7 @@ def main(opt, callbacks=Callbacks()):
     # Evolve hyperparameters (optional)
     else:
         # Hyperparameter evolution metadata (mutation scale 0-1, lower_limit, upper_limit)
-        meta = {'lr0': (1, 1e-5, 1e-1),  # initial learning rate (SGD=1E-2, Adam=1E-3)
+        meta = {'lr0': (1, 1e-6, 1e-2),  # initial learning rate (SGD=1E-2, Adam=1E-3)
                 'lrf': (1, 0.01, 1.0),  # final OneCycleLR learning rate (lr0 * lrf)
                 'momentum': (0.3, 0.6, 0.98),  # SGD momentum/Adam beta1
                 'weight_decay': (1, 0.0, 0.001),  # optimizer weight decay
