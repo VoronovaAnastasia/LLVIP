@@ -10,6 +10,7 @@ import argparse
 import sys
 from copy import deepcopy
 from pathlib import Path
+import random
 
 FILE = Path(__file__).resolve()
 ROOT = FILE.parents[1]  # YOLOv5 root directory
@@ -95,13 +96,6 @@ class Model(nn.Module):
         # Define model
         ch = self.yaml['ch'] = self.yaml.get('ch', ch)  # input channels
         ch=4
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("num channels in model get channel fron yaml    ", ch)
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
 
         if nc and nc != self.yaml['nc']:
             LOGGER.info(f"Overriding model.yaml nc={self.yaml['nc']} with nc={nc}")
@@ -129,15 +123,15 @@ class Model(nn.Module):
         self.info()
         LOGGER.info('')
 
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("num channels in model end of init    ", ch)
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-        # print("/////////////////////////////////------------------------/////////////////////////////////")
-
     def forward(self, x, augment=False, profile=False, visualize=False):
+
+        if random.random() < 0.5:
+            if x.shape[2]==4:
+                x=x[:, :, :3]
+            else:
+                x=x[:3,:, :]
+        logging.info(f'{x.shape}----------------------------------------')
+
         if augment:
             return self._forward_augment(x)  # augmented inference, None
         return self._forward_once(x, profile, visualize)  # single-scale inference, train
