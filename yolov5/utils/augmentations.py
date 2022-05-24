@@ -76,8 +76,11 @@ def augment_hsv(im, hgain=0.5, sgain=0.5, vgain=0.5):
     # HSV color-space augmentation
     #b, g, r, i = cv2.split(im)
     #im3 = cv2.merge([b, g, r])
-
-    im3=np.copy(im[:, :, :3])
+    flag=False
+    im3=np.copy(im)
+    if im.shape[2]==4:
+        im3=np.copy(im[:, :, :3])
+        flag=True
     #i=im[:, :,-1]
 
 
@@ -94,8 +97,9 @@ def augment_hsv(im, hgain=0.5, sgain=0.5, vgain=0.5):
         im_hsv = cv2.merge((cv2.LUT(hue, lut_hue), cv2.LUT(sat, lut_sat), cv2.LUT(val, lut_val)))
         cv2.cvtColor(im_hsv, cv2.COLOR_HSV2BGR, dst=im3)  # no return needed
 
-    im[:, :, :3]=im3
-
+    if flag:
+        im[:, :, :3]=im3
+    flag=False
     # print("-------------------------------------------------------")
     # print(im.shape)
     # print("-------------------------------------------------------")

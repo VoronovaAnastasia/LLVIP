@@ -195,7 +195,11 @@ def train(hyp,  # path/to/hyp.yaml or hyp dictionary
         del ckpt, csd
 
     # Image sizes
-    gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+    if model.current_ch==4:
+        gs = max(int(model.stride4_channel.max()), 32)  # grid size (max stride)
+    else:
+        gs = max(int(model.stride3_channel.max()), 32)
+
     nl = model.model[-1].nl  # number of detection layers (used for scaling hyp['obj'])
     imgsz = check_img_size(opt.imgsz, gs, floor=gs * 2)  # verify imgsz is gs-multiple
 
@@ -532,7 +536,7 @@ def main(opt, callbacks=Callbacks()):
         opt.save_dir = str(increment_path(Path(opt.project) / opt.name, exist_ok=opt.exist_ok))
 
     # DDP mode
-    #device = select_device(opt.device, batch_size=opt.batch_size)
+    device = select_device(opt.device, batch_size=opt.batch_size)
     device = torch.device('cuda')
     if LOCAL_RANK != -1:
         assert torch.cuda.device_count() > LOCAL_RANK, 'insufficient CUDA devices for DDP command'

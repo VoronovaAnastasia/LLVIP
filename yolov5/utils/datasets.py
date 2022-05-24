@@ -11,6 +11,7 @@ import os
 import random
 import shutil
 import time
+import copy
 from itertools import repeat
 from multiprocessing.pool import ThreadPool, Pool
 from pathlib import Path
@@ -219,9 +220,6 @@ class LoadImages:
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis'))
             img0 = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if img0.shape[2]==3:
-                img0=cv2.cvtColor(img0, cv2.COLOR_RGB2RGBA)
-                img0[:, :, 3]=np.zeros([img0.shape[0], img0.shape[1]])
             assert img0 is not None, 'Image Not Found ' + path
             print(f'image {self.count}/{self.nf} {path}: ', end='')
 
@@ -514,7 +512,7 @@ class LoadImagesAndLabels(Dataset):
     def cache_labels(self, path=Path('./labels.cache'), prefix=''):
         # Cache dataset labels, check images and read shapes
         x = {}  # dict
-        nm, nf, ne, nc, msgs = 0, 0, 0, 0, []  # number missing, found, empty, corrupt, messages
+        nm, nf, ne, nc, msgs = 0, 0, 0, 0, []  # number missing, found, emptlogging.info(f'y, corrupt, messages
         desc = f"{prefix}Scanning '{path.parent / path.stem}' images and labels..."
         with Pool(NUM_THREADS) as pool:
             pbar = tqdm(pool.imap(verify_image_label, zip(self.img_files, self.label_files, repeat(prefix))),
@@ -565,20 +563,22 @@ class LoadImagesAndLabels(Dataset):
             # Load mosaic
             img, labels = load_mosaic(self, index)
             shapes = None
+            logging.info(f'{img.shape} AFTER mosaic-------:')
 
             # MixUp augmentation
             if random.random() < hyp['mixup']:
                 img, labels = mixup(img, labels, *load_mosaic(self, random.randint(0, self.n - 1)))
+            logging.info(f'{img.shape} AFTER mixup-------:')
 
         else:
             # Load image
             img, (h0, w0), (h, w) = load_image(self, index)
-
+            #logging.info(f'{img.shape} AFTER LOAD-------:')
             # Letterbox
             shape = self.batch_shapes[self.batch[index]] if self.rect else self.img_size  # final letterboxed shape
             img, ratio, pad = letterbox(img, shape, auto=False, scaleup=self.augment)
             shapes = (h0, w0), ((h / h0, w / w0), pad)  # for COCO mAP rescaling
-
+            #logging.info(f'{img.shape} AFTER letterbox-------:')
             labels = self.labels[index].copy()
             if labels.size:  # normalized xywh to pixel xyxy format
                 labels[:, 1:] = xywhn2xyxy(labels[:, 1:], ratio[0] * w, ratio[1] * h, padw=pad[0], padh=pad[1])
@@ -590,24 +590,32 @@ class LoadImagesAndLabels(Dataset):
                                                  scale=hyp['scale'],
                                                  shear=hyp['shear'],
                                                  perspective=hyp['perspective'])
+        #logging.info(f'{img.shape} AFTER -------:')
 
         nl = len(labels)  # number of labels
         if nl:
             labels[:, 1:5] = xyxy2xywhn(labels[:, 1:5], w=img.shape[1], h=img.shape[0], clip=True, eps=1E-3)
+        #logging.info(f'{img.shape} Before augment-------:')
 
         if self.augment:
             # Albumentations
             #logging.info(f'{img.shape} before augment:')
-            imi=np.copy(img[:, :, 3])
+            flag=False
+            if img.shape[2]==4:
+                imi=np.copy(img[:, :, 3])
+                flag=True
             img, labels = self.albumentations(img, labels)
 
-            if img.shape[2]==3:
-                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
-                img[:, :, 3]=imi
-            
-            if img.shape[0]==3 :
-                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
-                img[3, :,:]=imi
+
+            if flag:
+                if img.shape[2]==3:
+                    img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                    img[:, :, 3]=imi
+                
+                if img.shape[0]==3 :
+                    img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
+                    img[3, :,:]=imi
+            flag=False
 
 
             #img[:, :, :3]=im3
@@ -650,7 +658,7 @@ class LoadImagesAndLabels(Dataset):
 
         # print("after transpose -----")
         # print(img.shape)
-        #logging.info(f'{img.shape}after augmentation:')
+        #logging.info(f'{img.shape}after augmentation://////////////////////////////////')
 
         return torch.from_numpy(img), labels_out, self.img_files[index], shapes
 
@@ -702,12 +710,17 @@ def load_image(self, i):
             #im = cv2.imread(path)  # BGR
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis')) 
-            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            
+            if "val_inf" in path or "val_vis" in path :
+                #logging.info("------------------------------in validation---------------------------") 
+                im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            else:
+                if random.random() < 0.5:
+                    im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+                else:
+                    im=image_v
 
-            if im.shape[2]==3:
-                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
-                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+            #logging.info(f'{im.shape} BEGIN----------------------------------------') 
+
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
@@ -731,8 +744,10 @@ def load_image(self, i):
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
             # print("/////////////////////////////////------------------------/////////////////////////////////")
+        #logging.info(f'{im.shape} BEGIN before return----------------------------------------') 
         return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
     else:
+        logging.info(f'{imgs[i].shape} BEGIN before return else----------------------------------------') 
         return self.imgs[i], self.img_hw0[i], self.img_hw[i]  # im, hw_original, hw_resized
 
 
@@ -746,6 +761,13 @@ def load_mosaic(self, index):
     for i, index in enumerate(indices):
         # Load image
         img, _, (h, w) = load_image(self, index)
+        flag=False
+        #logging.info(f'{img.shape} BEFORE cut----------------------------------------')
+        if img.shape[2]==4:
+            img_i=copy.copy(img)
+            flag=True
+            img = img[:,:,:3]    
+        #logging.info(f'{img.shape} img.shape in load mosaic----------------------------------------')
 
         # place img in img4
         if i == 0:  # top left
@@ -773,6 +795,12 @@ def load_mosaic(self, index):
             segments = [xyn2xy(x, w, h, padw, padh) for x in segments]
         labels4.append(labels)
         segments4.extend(segments)
+
+        if flag:
+            img_i[:,:,:3] = copy.copy(img)
+            img=copy.copy(img_i)
+        #logging.info(f'{img.shape} after cut----------------------------------------')
+
 
     # Concat/clip labels
     labels4 = np.concatenate(labels4, 0)
@@ -895,9 +923,7 @@ def extract_boxes(path='../datasets/coco128'):  # from utils.datasets import *; 
             image_i = cv2.imread(str(im_file))[..., ::-1]
             image_v = cv2.imread(str(im_file.replace('inf', 'vis')))[..., ::-1]
             im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if im.shape[2]==3:
-                im=cv2.cvtColor(im, cv2.COLOR_RGB2RGBA)
-                im[:, :, 3]=np.zeros([im.shape[0], im.shape[1]])
+            
             h, w = im.shape[:2]
 
             # labels
@@ -1036,9 +1062,6 @@ def dataset_stats(path='coco128.yaml', autodownload=False, verbose=False, profil
             image_i = cv2.imread(f)
             image_v = cv2.imread(f.replace('inf', 'vis'))
             img = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            if img.shape[2]==3:
-                img=cv2.cvtColor(img, cv2.COLOR_RGB2RGBA)
-                img[:, :, 3]=np.zeros([img.shape[0], img.shape[1]])
 
             im_height, im_width = im.shape[:2]
             r = max_dim / max(im_height, im_width)  # ratio

@@ -9,6 +9,7 @@ Usage:
 import argparse
 import sys
 from copy import deepcopy
+import copy
 from pathlib import Path
 import random
 
@@ -103,19 +104,40 @@ class Model(nn.Module):
         if anchors:
             LOGGER.info(f'Overriding model.yaml anchors with anchors={anchors}')
             self.yaml['anchors'] = round(anchors)  # override yaml value
-        self.model, self.save = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist
+
+        self.head3_channels, self.head4_channels, self.model, self.save = parse_model(deepcopy(self.yaml), ch=[ch])  # model, savelist
         self.names = [str(i) for i in range(self.yaml['nc'])]  # default names
         self.inplace = self.yaml.get('inplace', True)
+        self.current_ch=4
 
         # Build strides, anchors
         m = self.model[-1]  # Detect()
+        #logging.info(f'{m} self.model[-1]----------------------------------------')
         if isinstance(m, Detect):
+            #logging.info(f'{m} in isinstance ----------------------------------------')
             s = 256  # 2x min stride
             m.inplace = self.inplace
-            m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, ch, s, s))])  # forward
+            m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, 3, s, s))])  # forward
+            #logging.info(f'{m.stride} m.stride----------------------------------------')
+            self.current_ch=3
             m.anchors /= m.stride.view(-1, 1, 1)
             check_anchor_order(m)
-            self.stride = m.stride
+            self.stride3_channel = m.stride
+            self._initialize_biases()  # only run once
+
+        # Build strides, anchors
+        m = self.model[-1]  # Detect()
+        #logging.info(f'{m} self.model[-1]----------------------------------------')
+        if isinstance(m, Detect):
+            #logging.info(f'{m} in isinstance ----------------------------------------')
+            s = 256  # 2x min stride
+            m.inplace = self.inplace
+            m.stride = torch.tensor([s / x.shape[-2] for x in self.forward(torch.zeros(1, 4, s, s))])  # forward
+            #logging.info(f'{m.stride} m.stride----------------------------------------')
+            self.current_ch=4
+            m.anchors /= m.stride.view(-1, 1, 1)
+            check_anchor_order(m)
+            self.stride4_channel = m.stride
             self._initialize_biases()  # only run once
 
         # Init weights, biases
@@ -124,13 +146,13 @@ class Model(nn.Module):
         LOGGER.info('')
 
     def forward(self, x, augment=False, profile=False, visualize=False):
+        #torch.Size([1, 4, 1280, 1280])-
+        logging.info(f'{x.shape} x.shape----------------------------------------')
 
-        if random.random() < 0.5:
-            if x.shape[2]==4:
-                x=x[:, :, :3]
-            else:
-                x=x[:3,:, :]
-        logging.info(f'{x.shape}----------------------------------------')
+        if x.shape[1]==3:
+            self.current_ch=3
+        else:
+            self.current_ch=4
 
         if augment:
             return self._forward_augment(x)  # augmented inference, None
@@ -142,7 +164,10 @@ class Model(nn.Module):
         f = [None, 3, None]  # flips (2-ud, 3-lr)
         y = []  # outputs
         for si, fi in zip(s, f):
-            xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride.max()))
+            if self.current_ch == 3:
+                xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride3_channel.max()))
+            else:
+                xi = scale_img(x.flip(fi) if fi else x, si, gs=int(self.stride4_channel.max()))
             yi = self._forward_once(xi)[0]  # forward
             # cv2.imwrite(f'img_{si}.jpg', 255 * xi[0].cpu().numpy().transpose((1, 2, 0))[:, :, ::-1])  # save
             yi = self._descale_pred(yi, fi, si, img_size)
@@ -152,6 +177,21 @@ class Model(nn.Module):
 
     def _forward_once(self, x, profile=False, visualize=False):
         y, dt = [], []  # outputs
+
+        if self.current_ch == 3:
+            m = self.head3_channels
+        else:
+            m = self.head4_channels
+
+        if m.f != -1:  # if not from previous layer
+            x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
+        if profile:
+            self._profile_one_layer(m, x, dt)
+        x = m(x)  # run
+        y.append(x if m.i in self.save else None)  # save output
+        if visualize:
+            feature_visualization(x, m.type, m.i, save_dir=visualize)
+
         for m in self.model:
             if m.f != -1:  # if not from previous layer
                 x = y[m.f] if isinstance(m.f, int) else [x if j == -1 else y[j] for j in m.f]  # from earlier layers
@@ -258,12 +298,14 @@ class Model(nn.Module):
 
 
 def parse_model(d, ch):  # model_dict, input_channels(3)
+    ch = [3]
     LOGGER.info('\n%3s%18s%3s%10s  %-40s%-30s' % ('', 'from', 'n', 'params', 'module', 'arguments'))
     anchors, nc, gd, gw = d['anchors'], d['nc'], d['depth_multiple'], d['width_multiple']
     na = (len(anchors[0]) // 2) if isinstance(anchors, list) else anchors  # number of anchors
     no = na * (nc + 5)  # number of outputs = anchors * (classes + 5)
 
     layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+    #logging.info(f'{ch} channels----------------------------------------')
     for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
         m = eval(m) if isinstance(m, str) else m  # eval strings
         for j, a in enumerate(args):
@@ -276,6 +318,8 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         if m in [Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, MixConv2d, Focus, CrossConv,
                  BottleneckCSP, C3, C3TR, C3SPP, C3Ghost]:
             c1, c2 = ch[f], args[0]
+            # logging.info(f'{ch} ch----------------------------------------')
+            # logging.info(f'{c1} c1----------------------------------------')
             if c2 != no:  # if not output
                 c2 = make_divisible(c2 * gw, 8)
 
@@ -305,10 +349,74 @@ def parse_model(d, ch):  # model_dict, input_channels(3)
         LOGGER.info('%3s%18s%3s%10.0f  %-40s%-30s' % (i, f, n_, np, t, args))  # print
         save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
         layers.append(m_)
+        #logging.info(f'{m_} m_----------------------------------------')
         if i == 0:
             ch = []
         ch.append(c2)
-    return nn.Sequential(*layers), sorted(save)
+
+    head3_channels = copy(layers[0])
+    #layers.pop(0)
+    # logging.info(f'{head3_channels} head3_channels----------------------------------------')
+    # logging.info(f'{layers} layers----------------------------------------')
+
+    ch=[4]
+    layers, save, c2 = [], [], ch[-1]  # layers, savelist, ch out
+    #logging.info(f'{ch} channels----------------------------------------')
+    for i, (f, n, m, args) in enumerate(d['backbone'] + d['head']):  # from, number, module, args
+        m = eval(m) if isinstance(m, str) else m  # eval strings
+        for j, a in enumerate(args):
+            try:
+                args[j] = eval(a) if isinstance(a, str) else a  # eval strings
+            except NameError:
+                pass
+
+        n = n_ = max(round(n * gd), 1) if n > 1 else n  # depth gain
+        if m in [Conv, GhostConv, Bottleneck, GhostBottleneck, SPP, SPPF, DWConv, MixConv2d, Focus, CrossConv,
+                 BottleneckCSP, C3, C3TR, C3SPP, C3Ghost]:
+            c1, c2 = ch[f], args[0]
+            # logging.info(f'{ch} ch----------------------------------------')
+            # logging.info(f'{c1} c1----------------------------------------')
+            if c2 != no:  # if not output
+                c2 = make_divisible(c2 * gw, 8)
+
+            args = [c1, c2, *args[1:]]
+            if m in [BottleneckCSP, C3, C3TR, C3Ghost]:
+                args.insert(2, n)  # number of repeats
+                n = 1
+        elif m is nn.BatchNorm2d:
+            args = [ch[f]]
+        elif m is Concat:
+            c2 = sum([ch[x] for x in f])
+        elif m is Detect:
+            args.append([ch[x] for x in f])
+            if isinstance(args[1], int):  # number of anchors
+                args[1] = [list(range(args[1] * 2))] * len(f)
+        elif m is Contract:
+            c2 = ch[f] * args[0] ** 2
+        elif m is Expand:
+            c2 = ch[f] // args[0] ** 2
+        else:
+            c2 = ch[f]
+
+        m_ = nn.Sequential(*[m(*args) for _ in range(n)]) if n > 1 else m(*args)  # module
+        t = str(m)[8:-2].replace('__main__.', '')  # module type
+        np = sum([x.numel() for x in m_.parameters()])  # number params
+        m_.i, m_.f, m_.type, m_.np = i, f, t, np  # attach index, 'from' index, type, number params
+        LOGGER.info('%3s%18s%3s%10.0f  %-40s%-30s' % (i, f, n_, np, t, args))  # print
+        save.extend(x % i for x in ([f] if isinstance(f, int) else f) if x != -1)  # append to savelist
+        layers.append(m_)
+        #logging.info(f'{m_} m_----------------------------------------')
+        if i == 0:
+            ch = []
+        ch.append(c2)
+
+    head4_channels = copy(layers[0])
+    layers.pop(0)
+    # logging.info(f'{head3_channels} head3_channels----------------------------------------')
+    # logging.info(f'{head4_channels} head4_channels----------------------------------------')
+    # logging.info(f'{layers} layers----------------------------------------')
+
+    return head3_channels, head4_channels, nn.Sequential(*layers), sorted(save)
 
 
 if __name__ == '__main__':
