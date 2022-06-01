@@ -563,12 +563,12 @@ class LoadImagesAndLabels(Dataset):
             # Load mosaic
             img, labels = load_mosaic(self, index)
             shapes = None
-            logging.info(f'{img.shape} AFTER mosaic-------:')
+            #logging.info(f'{img.shape} AFTER mosaic-------:')
 
             # MixUp augmentation
             if random.random() < hyp['mixup']:
                 img, labels = mixup(img, labels, *load_mosaic(self, random.randint(0, self.n - 1)))
-            logging.info(f'{img.shape} AFTER mixup-------:')
+            #logging.info(f'{img.shape} AFTER mixup-------:')
 
         else:
             # Load image
@@ -590,7 +590,7 @@ class LoadImagesAndLabels(Dataset):
                                                  scale=hyp['scale'],
                                                  shear=hyp['shear'],
                                                  perspective=hyp['perspective'])
-        #logging.info(f'{img.shape} AFTER -------:')
+        #logging.info(f'{img.shape} AFTER load-------:')
 
         nl = len(labels)  # number of labels
         if nl:
@@ -620,7 +620,7 @@ class LoadImagesAndLabels(Dataset):
 
             #img[:, :, :3]=im3
             # print("before -----")
-            # print(img.shape)
+            # print(img.shape)getitem
             nl = len(labels)  # update after albumentations
 
             # HSV color-space
@@ -656,9 +656,11 @@ class LoadImagesAndLabels(Dataset):
         img = img.transpose((2, 0, 1))[::-1]  # HWC to CHW, BGR to RGB
         img = np.ascontiguousarray(img)
 
-        # print("after transpose -----")
-        # print(img.shape)
         #logging.info(f'{img.shape}after augmentation://////////////////////////////////')
+        # if random.random() < 0.5:
+        #     img = img[:3, :,:]
+        # logging.info(f'{img.shape}after augmentation://////////////////////////////////')
+
 
         return torch.from_numpy(img), labels_out, self.img_files[index], shapes
 
@@ -710,25 +712,16 @@ def load_image(self, i):
             #im = cv2.imread(path)  # BGR
             image_i = cv2.imread(path)
             image_v = cv2.imread(path.replace('inf', 'vis')) 
+            im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
             if "val_inf" in path or "val_vis" in path :
                 #logging.info("------------------------------in validation---------------------------") 
+                #im = image_v
                 im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-            else:
-                if random.random() < 0.5:
-                    im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
-                else:
-                    im=image_v
-
-            #logging.info(f'{im.shape} BEGIN----------------------------------------') 
-
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print(im.shape)
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-
+            # else:
+            #     if random.random() < 0.5:
+            #         im = np.concatenate((image_v, cv2.cvtColor(image_i, cv2.COLOR_BGR2GRAY)[...,None]), axis=-1)
+            #     else:
+            #         im=image_v
 
             assert im is not None, 'Image Not Found ' + path
         h0, w0 = im.shape[:2]  # orig hw
@@ -736,18 +729,10 @@ def load_image(self, i):
         if r != 1:  # if sizes are not equal
             im = cv2.resize(im, (int(w0 * r), int(h0 * r)),
                             interpolation=cv2.INTER_AREA if r < 1 and not self.augment else cv2.INTER_LINEAR)
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("after resize")
-            # print(im.shape)
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
-            # print("/////////////////////////////////------------------------/////////////////////////////////")
         #logging.info(f'{im.shape} BEGIN before return----------------------------------------') 
         return im, (h0, w0), im.shape[:2]  # im, hw_original, hw_resized
     else:
-        logging.info(f'{imgs[i].shape} BEGIN before return else----------------------------------------') 
+        #logging.info(f'{imgs[i].shape} BEGIN before return else----------------------------------------') 
         return self.imgs[i], self.img_hw0[i], self.img_hw[i]  # im, hw_original, hw_resized
 
 
@@ -761,12 +746,12 @@ def load_mosaic(self, index):
     for i, index in enumerate(indices):
         # Load image
         img, _, (h, w) = load_image(self, index)
-        flag=False
-        #logging.info(f'{img.shape} BEFORE cut----------------------------------------')
-        if img.shape[2]==4:
-            img_i=copy.copy(img)
-            flag=True
-            img = img[:,:,:3]    
+        # flag=False
+        # #logging.info(f'{img.shape} BEFORE cut----------------------------------------')
+        # if img.shape[2]==4:
+        #     img_i=copy.copy(img)
+        #     flag=True
+        #     img = img[:,:,:3]    
         #logging.info(f'{img.shape} img.shape in load mosaic----------------------------------------')
 
         # place img in img4
@@ -796,9 +781,9 @@ def load_mosaic(self, index):
         labels4.append(labels)
         segments4.extend(segments)
 
-        if flag:
-            img_i[:,:,:3] = copy.copy(img)
-            img=copy.copy(img_i)
+        # if flag:
+        #     img_i[:,:,:3] = copy.copy(img)
+        #     img=copy.copy(img_i)
         #logging.info(f'{img.shape} after cut----------------------------------------')
 
 

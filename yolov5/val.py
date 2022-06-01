@@ -5,11 +5,12 @@ Validate a trained YOLOv5 model accuracy on a custom dataset
 Usage:
     $ python path/to/val.py --data coco128.yaml --weights yolov5s.pt --img 640
 """
-
+import time
 import argparse
 import json
 import os
 import sys
+import logging
 from pathlib import Path
 from threading import Thread
 
@@ -122,7 +123,11 @@ def run(data,
         # Load model
         check_suffix(weights, '.pt')
         model = attempt_load(weights, map_location=device)  # load FP32 model
-        gs = max(int(model.stride.max()), 32)  # grid size (max stride)
+        if model.current_ch==4:
+            gs = max(int(model.stride4_channel.max()), 32)  # grid size (max stride)
+        else:
+            gs = max(int(model.stride3_channel.max()), 32)
+        #gs = max(int(model.stride.max()), 32)  # grid size (max stride)
         imgsz = check_img_size(imgsz, s=gs)  # check image size
 
         # Multi-GPU disabled, incompatible with .half() https://github.com/ultralytics/yolov5/issues/99
@@ -327,6 +332,7 @@ def parse_opt():
 
 
 def main(opt):
+    start_time = time.time()
     set_logging()
     check_requirements(exclude=('tensorboard', 'thop'))
 
@@ -353,6 +359,8 @@ def main(opt):
             np.savetxt(f, y, fmt='%10.4g')  # save
         os.system('zip -r study.zip study_*.txt')
         plot_val_study(x=x)  # plot
+    end_time = time.time() - start_time
+    logging.info(f'{end_time} VALIDATION-----TIME------ ') 
 
 
 if __name__ == "__main__":

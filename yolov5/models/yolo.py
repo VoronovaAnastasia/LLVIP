@@ -148,7 +148,13 @@ class Model(nn.Module):
     def forward(self, x, augment=False, profile=False, visualize=False):
         #torch.Size([1, 4, 1280, 1280])-
         logging.info(f'{x.shape} x.shape----------------------------------------')
-
+        # if random.random() < 0.5:
+        #     for i in range(x.shape[0]):
+        #         x[i]=x[i,:3,:,:]
+        # logging.info(f'{x.shape} x.shape after transform----------------------------------------')
+        # if random.random() < 0.5:
+        #     x=x[:,:3,:,:]
+        # logging.info(f'{x.shape} x.shape after transform----------------------------------------')
         if x.shape[1]==3:
             self.current_ch=3
         else:
