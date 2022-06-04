@@ -140,6 +140,13 @@ class Model(nn.Module):
             self.stride4_channel = m.stride
             self._initialize_biases()  # only run once
 
+        # for name, param in self.head3_channels.named_parameters():
+        #     print('name: ', name)
+        #     print(type(param))
+        #     print('param.shape: ', param.shape)
+        #     print('param.requires_grad: ', param.requires_grad)
+        #     print('=====')
+
         # Init weights, biases
         initialize_weights(self)
         self.info()
@@ -157,8 +164,16 @@ class Model(nn.Module):
         # logging.info(f'{x.shape} x.shape after transform----------------------------------------')
         if x.shape[1]==3:
             self.current_ch=3
+            for name, param in self.head3_channels.named_parameters():
+                param.requires_grad = True
+            for name, param in self.head4_channels.named_parameters():
+                param.requires_grad = False
         else:
             self.current_ch=4
+            for name, param in self.head3_channels.named_parameters():
+                param.requires_grad = False
+            for name, param in self.head4_channels.named_parameters():
+                param.requires_grad = True
 
         if augment:
             return self._forward_augment(x)  # augmented inference, None
