@@ -154,7 +154,7 @@ class Model(nn.Module):
 
     def forward(self, x, augment=False, profile=False, visualize=False):
         #torch.Size([1, 4, 1280, 1280])-
-        logging.info(f'{x.shape} x.shape----------------------------------------')
+        #logging.info(f'{x.shape} x.shape----------------------------------------')
         # if random.random() < 0.5:
         #     for i in range(x.shape[0]):
         #         x[i]=x[i,:3,:,:]
@@ -165,15 +165,19 @@ class Model(nn.Module):
         if x.shape[1]==3:
             self.current_ch=3
             for name, param in self.head3_channels.named_parameters():
-                param.requires_grad = True
+                if name =="conv.weight":
+                    param.requires_grad = True
             for name, param in self.head4_channels.named_parameters():
-                param.requires_grad = False
+                if name =="conv.weight":
+                    param.requires_grad = False
         else:
             self.current_ch=4
             for name, param in self.head3_channels.named_parameters():
-                param.requires_grad = False
+                if name =="conv.weight":
+                    param.requires_grad = False
             for name, param in self.head4_channels.named_parameters():
-                param.requires_grad = True
+                if name =="conv.weight":
+                    param.requires_grad = True
 
         if augment:
             return self._forward_augment(x)  # augmented inference, None
